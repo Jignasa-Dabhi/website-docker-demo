@@ -1,6 +1,6 @@
 pipeline {  
     agent any  
-
+  
     environment {  
         AWS_REGION = 'ap-south-1'  
         ECR_REPO = 'website-docker-demo'  
@@ -10,21 +10,20 @@ pipeline {
         LATEST_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest"  
         DEPLOY_SERVER = '43.205.196.41'  
     }  
-
+  
     stages {  
-
         stage('Checkout') {  
             steps {  
                 git branch: 'main', url: 'https://github.com/Jignasa-Dabhi/website-docker-demo.git'  
             }  
         }  
-
+  
         stage('Build Docker Image') {  
             steps {  
                 sh 'docker build -t website-docker-demo .'  
             }  
         }  
-
+  
         stage('Tag Docker Image') {  
             steps {  
                 sh '''  
@@ -33,14 +32,17 @@ pipeline {
                 '''  
             }  
         }  
-
-        // ✅ ONLY FIX HERE
+  
         stage('Login to ECR') {  
             steps {  
-                sh 'aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 314076239426.dkr.ecr.ap-south-1.amazonaws.com'
+                sh '''  
+                    aws ecr get-login-password --region $AWS_REGION | 
+                    docker login --username AWS --password-stdin 
+                    $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com  
+                '''  
             }  
         }  
-
+  
         stage('Push Image to ECR') {  
             steps {  
                 sh '''  
@@ -49,7 +51,7 @@ pipeline {
                 '''  
             }  
         }  
-
+  
         stage('Deploy to EC2') {  
             steps {  
                 sshagent(['deploy-ec2-key']) {  
@@ -66,7 +68,7 @@ pipeline {
             }  
         }  
     }  
-
+  
     post {  
         success {  
             echo 'Website deployed successfully'  
